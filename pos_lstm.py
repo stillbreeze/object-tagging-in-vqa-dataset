@@ -40,7 +40,7 @@ def RNN():
 		for word_list in prep_data.chunks(words,chunk_len):
 			chunk_count+=1
 			print ("chunk %d" % chunk_count)
-			X_batch,Y_batch=prep_data.datasetGenerator(word_list,new_model)
+			X_batch,Y_batch=prep_data.datasetGenerator_slidingWindow(word_list,new_model,window_size)
 			model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1,validation_split=0.2,show_accuracy=True)
 			if chunk_count==80:
 				model.save_weights('pos.h5')

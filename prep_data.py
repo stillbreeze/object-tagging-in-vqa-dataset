@@ -81,6 +81,40 @@ def datasetGenerator(word_list,new_model):
 			Y_train=np.concatenate((Y_train,[0]))
 	return X_train,Y_train
 
+def datasetGenerator_slidingWindow(word_list,new_model,window_size):
+	middle=(window_size-1)/2
+	slides=len(word_list)-window_size-1
+
+	window=word_list[0:window_size]
+	vec=new_model[window[0][0]].astype('float16')
+	for word in window[1:]:
+		vec=np.append(vec,new_model[word[0]].astype('float16'))
+	prog=re.compile('^NN(.)*$')
+	result=prog.match(window[middle][1])
+	X_train=vec
+	if result:
+		Y_train=np.array([1])
+	else:
+		Y_train=np.array([0])
+
+
+	for i in xrange(1,slides):
+		window=word_list[i:i+window_size]
+		vec=new_model[window[0][0]].astype('float16')
+		for word in window[1:]:
+			vec=np.append(vec,new_model[word[0]].astype('float16'))
+		prog=re.compile('^NN(.)*$')
+		result=prog.match(window[middle][1])
+		X_train=np.vstack((X_train,vec))
+		if result:
+			Y_train=np.concatenate((Y_train,[1]))
+		else:
+			Y_train=np.concatenate((Y_train,[0]))
+
+	print X_train.shape
+	print Y_train.shape
+
+	return X_train,Y_train
 
 def loadData():
 	new_model=gensim.models.Word2Vec.load('./vqa_train')
