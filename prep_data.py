@@ -127,3 +127,8 @@ def loadData():
 
 	del tag_sent
 	return words,new_model
+
+def getTestData(words,new_model,window_size):
+	test_words=words[-1000:]
+	return datasetGenerator(words,new_model)
+	# return datasetGenerator_slidingWindow(words,new_model,window_size)
