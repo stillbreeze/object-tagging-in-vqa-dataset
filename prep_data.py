@@ -4,6 +4,7 @@ from nltk.corpus import brown
 import h5py
 import re
 from datetime import datetime
+from keras.utils import np_utils
 
 
 # print 'Loading model and dataset...'
@@ -60,7 +61,20 @@ def chunks(l, n):
 	for i in xrange(0, len(l), n):
 		yield l[i:i+n]
 
-def datasetGenerator(word_list,new_model):
+def datasetGenerator_classification(word_list,new_model,tagset):
+	X_train=new_model[word_list[0][0]].astype('float16')
+	Y_train=np.array([tagset[word_list[0][1]]])
+
+	for word in word_list[1:]:
+		vec=new_model[word[0]].astype('float16')
+		X_train=np.vstack((X_train,vec))
+		Y_train=np.concatenate((Y_train,[tagset[word[1]]]))
+	Y_train = np_utils.to_categorical(Y_train, len(tagset))
+	return X_train,Y_train
+
+
+
+def datasetGenerator_regression(word_list,new_model):
 	X_train=new_model[word_list[0][0]].astype('float16')
 	prog=re.compile('^NN(.)*$')
 	result=prog.match(word_list[0][1])
@@ -81,7 +95,7 @@ def datasetGenerator(word_list,new_model):
 			Y_train=np.concatenate((Y_train,[0]))
 	return X_train,Y_train
 
-def datasetGenerator_slidingWindow(word_list,new_model,window_size):
+def datasetGenerator_slidingWindow_regression(word_list,new_model,window_size):
 	middle=(window_size-1)/2
 	slides=len(word_list)-window_size-1
 
@@ -111,24 +125,28 @@ def datasetGenerator_slidingWindow(word_list,new_model,window_size):
 		else:
 			Y_train=np.concatenate((Y_train,[0]))
 
-	print X_train.shape
-	print Y_train.shape
-
 	return X_train,Y_train
 
 def loadData():
 	new_model=gensim.models.Word2Vec.load('./vqa_train')
-	tag_sent=brown.tagged_sents()
+	words=brown.tagged_words(tagset='universal')
 
-	words=[]
-	for sent in tag_sent:
-		for word in sent:
-			words.append(word)
+	i=0
+	tagset={}
+	for word in words:
+		if word[1] in tagset:
+			pass
+		else:
+			tagset[word[1]]=i
+			i+=1
+	return words,new_model,tagset
 
-	del tag_sent
-	return words,new_model
-
-def getTestData(words,new_model,window_size):
+def getTestData_regression(words,new_model,window_size):
 	test_words=words[-1000:]
-	return datasetGenerator(words,new_model)
-	# return datasetGenerator_slidingWindow(words,new_model,window_size)
+	return datasetGenerator_regression(test_words,new_model)
+	# return datasetGenerator_slidingWindow_regression(words,new_model,window_size)
+
+def getTestData_classification(words,new_model,window_size,tagset):
+	test_words=words[-1000:]
+	return datasetGenerator_classification(test_words,new_model,tagset)
+	# return datasetGenerator_slidingWindow_regression(words,new_model,window_size)
