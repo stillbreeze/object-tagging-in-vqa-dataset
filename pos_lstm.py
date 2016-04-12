@@ -20,9 +20,9 @@ def test_regression(model,X_test,Y_test):
 	res=np.logical_xor(predictions,Y_test).astype('int')
 	res=np.sum(res)
 	res=1000-res
-	print predictions[0:50]
+	print pred[0:100]
 	print '--------------------------------------------------------'
-	print Y_test[0:50]
+	print Y_test[0:100]
 	print '\nTest Accuracy:\t' + str(float(res)/1000) + '\n\n'
 
 def test_classification(model,X_test,Y_test):
@@ -41,11 +41,12 @@ def test_classification(model,X_test,Y_test):
 
 def RNN():
 	print 'Loading data...'
-	words,new_model,tagset=prep_data.loadData()
+	words,new_model,tagset,embedding_weights=prep_data.loadData()
+	embedding_weights=embedding_weights[1:]
 
 	maxlen = 200
 	nb_classes=len(tagset)
-	batch_size = 128
+	batch_size = embedding_weights.shape[0]
 	nb_epoch=200
 	chunk_len=2000
 	window_size=5
@@ -54,11 +55,11 @@ def RNN():
 	filter_length=3
 	pool_length=2
 
-	X_test,Y_test=prep_data.getTestData_classification(words,new_model,window_size,tagset)
+	X_test,Y_test=prep_data.getTestData_regression(words,new_model,window_size)
 
 	print('Building model...')
 	model = Sequential()
-	model.add(Embedding(batch_size, maxlen, dropout=0.5))
+	model.add(Embedding(batch_size, maxlen, mask_zero=False, weights=[embedding_weights]))
 	model.add(Convolution1D(nb_filter=nb_filter,
 						filter_length=filter_length,
 						border_mode='valid',
@@ -68,15 +69,15 @@ def RNN():
 	# model.add(LSTM(128, dropout_W=0.5, dropout_U=0.1,return_sequences=True,init='he_normal'))
 	model.add(LSTM(128, dropout_W=0.5, dropout_U=0.1,init='he_normal'))
 	model.add(Dropout(0.5))
-	model.add(Dense(nb_classes))
-	model.add(Activation('softmax'))
+	model.add(Dense(1))
+	model.add(Activation('sigmoid'))
 	# model.add(Reshape((maxlen,1),input_shape=(maxlen,)))
 	# model.add(LSTM(256,batch_input_shape=(batch_size, maxlen, 1),return_sequences=True,dropout_W=0.5, dropout_U=0.1))
 	# model.add(LSTM(256,batch_input_shape=(batch_size, maxlen, 1),return_sequences=False,dropout_W=0.5, dropout_U=0.1))
 	# model.add(Dense(1))
 	# model.add(Dropout(0.5))
 	# model.add(Activation('sigmoid'))
-	model.compile(loss='categorical_crossentropy',optimizer='adam')
+	model.compile(loss='binary_crossentropy',optimizer='adam')
 
 	print 'Starting with training...'
 	for e in range(nb_epoch):
@@ -85,11 +86,11 @@ def RNN():
 		for word_list in prep_data.chunks(words,chunk_len):
 			chunk_count+=1
 			print ("chunk %d" % chunk_count)
-			X_batch,Y_batch=prep_data.datasetGenerator_classification(word_list,new_model,tagset)
+			X_batch,Y_batch=prep_data.datasetGenerator_regression(word_list,new_model)
 			model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1,validation_split=0.1,show_accuracy=True)
-			test_classification(model,X_test,Y_test)
+			test_regression(model,X_test,Y_test)
 			if chunk_count%10==0:
-				model.save_weights('pos2.h5',overwrite=True)
+				model.save_weights('pos3.h5',overwrite=True)
 			if chunk_count==100:
 				break
 

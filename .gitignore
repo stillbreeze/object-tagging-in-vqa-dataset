@@ -1,3 +1,5 @@
 *.json
 *.pyc
 *.npy
+embedding_weights.h5
+pos3.h5

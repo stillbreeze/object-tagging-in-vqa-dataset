@@ -3,6 +3,7 @@ import numpy as np
 from nltk.corpus import brown
 import h5py
 import re
+import pickle
 from datetime import datetime
 from keras.utils import np_utils
 
@@ -76,7 +77,7 @@ def datasetGenerator_classification(word_list,new_model,tagset):
 
 def datasetGenerator_regression(word_list,new_model):
 	X_train=new_model[word_list[0][0]].astype('float16')
-	prog=re.compile('^NN(.)*$')
+	prog=re.compile('^NO(.)*$')
 	result=prog.match(word_list[0][1])
 	if result:
 		Y_train=np.array([1])
@@ -139,7 +140,10 @@ def loadData():
 		else:
 			tagset[word[1]]=i
 			i+=1
-	return words,new_model,tagset
+
+	with h5py.File('embedding_weights.h5', 'r') as hf:
+		embedding_weights=np.array(hf.get('embedding_weights'))
+	return words,new_model,tagset,embedding_weights
 
 def getTestData_regression(words,new_model,window_size):
 	test_words=words[-1000:]
